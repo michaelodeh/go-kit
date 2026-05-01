@@ -2,7 +2,7 @@ package mailer
 
 import (
 	interfaces "github.com/alapa-ai/auth/internal/interface"
-	"github.com/alapa-ai/auth/pkg/dto"
+	"github.com/michaelodeh/go-kit/pkg/dto"
 	"gopkg.in/gomail.v2"
 )
 
