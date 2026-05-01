@@ -1,8 +1,8 @@
 package mailer
 
 import (
-	interfaces "github.com/alapa-ai/auth/internal/interface"
-	"github.com/michaelodeh/go-kit/pkg/dto"
+	"github.com/michaelodeh/go-kit/dto"
+	interfaces "github.com/michaelodeh/go-kit/interface"
 	"gopkg.in/gomail.v2"
 )
 

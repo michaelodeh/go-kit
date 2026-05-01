@@ -1,8 +1,6 @@
 package mailer
 
-import (
-	interfaces "github.com/alapa-ai/auth/internal/interface"
-)
+import interfaces "github.com/michaelodeh/go-kit/interface"
 
 type goMailer struct {
 	transport interfaces.MailTransport

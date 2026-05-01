@@ -1,7 +1,7 @@
 package mailer
 
 import (
-	"github.com/michaelodeh/go-kit/pkg/dto"
+	"github.com/michaelodeh/go-kit/dto"
 	"gopkg.in/gomail.v2"
 )
 

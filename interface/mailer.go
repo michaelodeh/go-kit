@@ -1,6 +1,6 @@
 package interfaces
 
-import "github.com/michaelodeh/go-kit/pkg/dto"
+import "github.com/michaelodeh/go-kit/dto"
 
 type Mailer interface {
 	SendMail(msg *dto.MailMessage) error
