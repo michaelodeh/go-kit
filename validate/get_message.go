@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/michaelodeh/go-kit/pkg/dto"
+	"github.com/michaelodeh/go-kit/dto"
 )
 
 func GetValidationMessage(err error, fallbackMessage string) *dto.ApiError {

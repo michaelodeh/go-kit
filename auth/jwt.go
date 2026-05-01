@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/michaelodeh/go-kit/pkg/dto"
-	"github.com/michaelodeh/go-kit/pkg/utils"
+	"github.com/michaelodeh/go-kit/dto"
+	"github.com/michaelodeh/go-kit/utils"
 )
 
 var JWTSecretKey = utils.GetEnv("JWT_SECRET", "alapa-ai-auth")
