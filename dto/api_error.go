@@ -16,8 +16,8 @@ func (e *ApiError) Error() string {
 	return e.Message
 }
 
-func (e *ApiError) ToResponse() *ApiResponse[any] {
-	return &ApiResponse[any]{
+func (e *ApiError) ToResponse() *ApiResponse[string] {
+	return &ApiResponse[string]{
 		Code:    e.Code,
 		Status:  http.StatusText(e.Code),
 		Message: e.Message,

@@ -12,10 +12,11 @@ type ApiResponse[T any] struct {
 	Data    T      `json:"data,omitempty"`
 }
 
-type ApiErrorResponse struct {
+type ApiErrorResponse[T any] struct {
 	Code    int    `json:"code"`
 	Status  string `json:"status"`
 	Message string `json:"message"`
+	Data    T      `json:"data,omitempty"`
 }
 
 type ApiSuccessResponse[T any] struct {
