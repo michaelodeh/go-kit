@@ -1,0 +1,71 @@
+package template
+
+import (
+	"embed"
+	"html/template"
+	"io"
+	"log"
+	"path/filepath"
+)
+
+type TemplateRender struct {
+	tmpl         *template.Template
+	systemParams map[string]interface{}
+	fs           embed.FS
+}
+
+func NewRenderer(fs embed.FS, patterns ...string) (*TemplateRender, error) {
+	tmpl := template.New("")
+
+	for _, pattern := range patterns {
+		// Parse files matching the pattern
+		matches, err := fs.ReadDir(filepath.Dir(pattern))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, match := range matches {
+			if !match.IsDir() {
+				// Parse each file individually
+				path := filepath.Join(filepath.Dir(pattern), match.Name())
+				data, err := fs.ReadFile(path)
+				if err != nil {
+					return nil, err
+				}
+
+				_, err = tmpl.New(path).Parse(string(data))
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	return &TemplateRender{
+		tmpl: tmpl,
+		fs:   fs,
+	}, nil
+}
+
+func (r *TemplateRender) AddGlobalParams(params *map[string]interface{}) {
+	if params == nil {
+		params = &map[string]interface{}{}
+	}
+}
+
+func (r *TemplateRender) Render(w io.Writer, name string, data *map[string]interface{}) error {
+	if data == nil {
+		data = &map[string]interface{}{}
+	}
+	for k, v := range r.systemParams {
+		if _, ok := (*data)[k]; !ok {
+			(*data)[k] = v
+		}
+	}
+	err := r.tmpl.ExecuteTemplate(w, name, data)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
