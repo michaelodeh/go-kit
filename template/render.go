@@ -6,16 +6,35 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"path/filepath"
 )
 
 type TemplateRender struct {
-	tmpl         *template.Template
+	globalFiles  []string
+	basePath     string
 	systemParams map[string]interface{}
 	fs           embed.FS
 }
 
-func NewRenderer(fs embed.FS, patterns ...string) (*TemplateRender, error) {
-	tmpl, err := template.ParseFS(fs, patterns...)
+func NewRenderer(fs embed.FS) (*TemplateRender, error) {
+
+	return &TemplateRender{
+		fs: fs,
+	}, nil
+}
+
+func (r *TemplateRender) AddTemplateFiles(patterns ...string) (*template.Template, error) {
+	patterns = append(r.globalFiles, patterns...)
+	for i, p := range patterns {
+		if !filepath.IsAbs(p) {
+			p = filepath.Join(r.basePath, p)
+		}
+		patterns[i] = p
+	}
+	for _, p := range patterns {
+		fmt.Println(p)
+	}
+	tmpl, err := template.ParseFS(r.fs, patterns...)
 
 	if err != nil {
 		return nil, err
@@ -23,13 +42,18 @@ func NewRenderer(fs embed.FS, patterns ...string) (*TemplateRender, error) {
 	for _, t := range tmpl.Templates() {
 		fmt.Println(t.Name())
 	}
-	return &TemplateRender{
-		tmpl: tmpl,
-		fs:   fs,
-	}, nil
+	return tmpl, nil
 }
 
-func (r *TemplateRender) Render(w io.Writer, name string, data *map[string]interface{}) error {
+func (r *TemplateRender) AddLGlobalFiles(patterns ...string) {
+	r.globalFiles = append(r.globalFiles, patterns...)
+}
+
+func (r *TemplateRender) SetTemplatePath(path string) {
+	r.basePath = path
+}
+
+func (r *TemplateRender) Render(w io.Writer, tmpl *template.Template, name string, data *map[string]interface{}) error {
 	if data == nil {
 		data = &map[string]interface{}{}
 	}
@@ -38,7 +62,7 @@ func (r *TemplateRender) Render(w io.Writer, name string, data *map[string]inter
 			(*data)[k] = v
 		}
 	}
-	err := r.tmpl.ExecuteTemplate(w, name, data)
+	err := tmpl.ExecuteTemplate(w, name, data)
 	if err != nil {
 		log.Println(err)
 		return err
