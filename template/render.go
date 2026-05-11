@@ -12,6 +12,7 @@ import (
 type TemplateRender struct {
 	globalFiles  []string
 	basePath     string
+	extension    string
 	systemParams map[string]interface{}
 	fs           embed.FS
 }
@@ -29,6 +30,7 @@ func (r *TemplateRender) AddTemplateFiles(patterns ...string) (*template.Templat
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(r.basePath, p)
 		}
+
 		patterns[i] = p
 	}
 	for _, p := range patterns {
@@ -37,6 +39,7 @@ func (r *TemplateRender) AddTemplateFiles(patterns ...string) (*template.Templat
 	tmpl, err := template.ParseFS(r.fs, patterns...)
 
 	if err != nil {
+		fmt.Printf("Failed to parse template: %v\n", err)
 		return nil, err
 	}
 	for _, t := range tmpl.Templates() {
