@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"net/http"
 	"path/filepath"
 )
 
@@ -71,4 +72,12 @@ func (r *TemplateRender) Render(w io.Writer, tmpl *template.Template, name strin
 		return err
 	}
 	return nil
+}
+
+func (r *TemplateRender) RenderWithFiles(w http.ResponseWriter, name string, data *map[string]interface{}, patterns ...string) error {
+	tmpl, err := r.AddTemplateFiles(patterns...)
+	if err != nil {
+		return err
+	}
+	return r.Render(w, tmpl, name, data)
 }
