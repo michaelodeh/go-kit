@@ -34,9 +34,7 @@ func (r *TemplateRender) AddTemplateFiles(patterns ...string) (*template.Templat
 
 		patterns[i] = p
 	}
-	for _, p := range patterns {
-		fmt.Println(p)
-	}
+
 	tmpl, err := template.ParseFS(r.fs, patterns...)
 
 	if err != nil {

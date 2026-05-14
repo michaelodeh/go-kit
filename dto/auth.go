@@ -32,7 +32,6 @@ type VerifyEmailRequest struct {
 }
 
 type ChangePasswordRequest struct {
-	ID              string `json:"-"`
 	Password        string `json:"password" validate:"required,min=6,max=100"`
 	NewPassword     string `json:"new_password" validate:"required,min=6,max=100"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,min=6,max=100"`
