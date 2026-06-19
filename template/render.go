@@ -41,9 +41,6 @@ func (r *TemplateRender) AddTemplateFiles(patterns ...string) (*template.Templat
 		fmt.Printf("Failed to parse template: %v\n", err)
 		return nil, err
 	}
-	for _, t := range tmpl.Templates() {
-		fmt.Println(t.Name())
-	}
 	return tmpl, nil
 }
 

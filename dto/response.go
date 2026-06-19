@@ -33,8 +33,12 @@ func JsonResponse[T any](w http.ResponseWriter, response *ApiResponse[T]) {
 }
 
 func JsonErrorResponse[T any](w http.ResponseWriter, response *ApiResponse[T]) {
+	code := response.Code
+	if code == 0 {
+		code = http.StatusBadRequest
+	}
 	JsonResponse(w, &ApiResponse[string]{
-		Code:    response.Code,
+		Code:    code,
 		Status:  "error",
 		Message: response.Message,
 	})
