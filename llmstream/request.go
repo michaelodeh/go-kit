@@ -18,11 +18,6 @@ func (h *Client) handleRequest(req *http.Request, headers map[string]string) (*h
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		resp.Body.Close()
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
 	return resp, nil
 }
 
