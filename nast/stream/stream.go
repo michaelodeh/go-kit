@@ -11,17 +11,28 @@ import (
 // }
 
 type NastJetStreamClient struct {
-	js *jetstream.JetStream
+	js jetstream.JetStream
 }
 
-func NewNastJetStreamClient(js *jetstream.JetStream) *NastJetStreamClient {
+func NewNastJetStreamClient(js jetstream.JetStream) *NastJetStreamClient {
 	return &NastJetStreamClient{js: js}
 }
 
+// NewConsumer creates a consumer for streamName. The supplied config is a
+// template: the application subject passed to Consume becomes FilterSubject.
+//
+// A consumer is started once. Create another NastStreamConsumer when an
+// application needs independent subscriptions or different filters.
 func (ns *NastJetStreamClient) NewConsumer(streamName string, opts ...*jetstream.ConsumerConfig) *nats_stream_consumer.NastStreamConsumer {
+	if ns == nil {
+		return nats_stream_consumer.NewNastStreamConsumer(nil, streamName, opts...)
+	}
 	return nats_stream_consumer.NewNastStreamConsumer(ns.js, streamName, opts...)
 }
 
 func (ns *NastJetStreamClient) NewPublisher() *nats_stream_publisher.NastJetStreamPublisher {
+	if ns == nil {
+		return nats_stream_publisher.NewNastJetStreamPublisher(nil)
+	}
 	return nats_stream_publisher.NewNastJetStreamPublisher(ns.js)
 }

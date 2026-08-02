@@ -6,20 +6,24 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-func (ns *NastStreamConsumer) ConsumeFunc(ctx context.Context, topic string, handlerFunc func(data jetstream.Msg) error) {
+// ConsumeFunc starts a consumer using context.Background(). Retain the
+// returned ConsumeContext and stop or drain it during shutdown.
+func (c *NastStreamConsumer) ConsumeFunc(topic string, handler func(jetstream.Msg) error) (jetstream.ConsumeContext, error) {
+	return c.ConsumeFuncWithContext(context.Background(), topic, handler)
+}
 
-	println("consume function called")
-	go func() {
-		if err := ns.rawConsumer(ctx, topic, func(msg jetstream.Msg) {
-			if err := handlerFunc(msg); err != nil {
-				println(err.Error())
-				msg.Nak()
-				return
-			}
-			msg.Ack()
-		}); err != nil {
-			println("rawConsumer:", err.Error())
-		}
-	}()
+// ConsumeFuncWithContext is the function-oriented equivalent of
+// ConsumeWithContext. The handler is acknowledged automatically when it
+// returns nil and Nak'ed when it returns an error.
+func (c *NastStreamConsumer) ConsumeFuncWithContext(ctx context.Context, topic string, handler func(jetstream.Msg) error) (jetstream.ConsumeContext, error) {
+	if handler == nil {
+		return nil, ErrHandlerRequired
+	}
+	return c.start(ctx, topic, handler)
+}
 
+// ConsumeFuncContext is retained as a discoverable alias for callers that
+// prefer the context-before-subject naming convention.
+func (c *NastStreamConsumer) ConsumeFuncContext(ctx context.Context, topic string, handler func(jetstream.Msg) error) (jetstream.ConsumeContext, error) {
+	return c.ConsumeFuncWithContext(ctx, topic, handler)
 }

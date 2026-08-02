@@ -2,27 +2,31 @@ package nats_stream
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/nats-io/nats.go/jetstream"
 )
 
+// CreateStream ensures that a stream with cfg exists.
+//
+// The old implementation treated every Stream lookup error as "not found" and
+// printed directly to stdout. CreateOrUpdateStream lets JetStream distinguish
+// a missing stream from authentication, connection, and configuration errors.
 func (ns *NastJetStreamClient) CreateStream(ctx context.Context, cfg jetstream.StreamConfig) error {
-
-	fmt.Println("Stream name: ", cfg.Name)
-	fmt.Println("Stream config: ", cfg.Subjects)
-
-	if _, err := (*ns.js).Stream(ctx, cfg.Name); err == nil {
-		return nil // already exists
+	if ns == nil || ns.js == nil {
+		return errors.New("nats stream client is nil")
+	}
+	if ctx == nil {
+		return errors.New("nats stream context is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
-	_, err := (*ns.js).CreateStream(ctx, cfg)
-
-	if err != nil {
-		return fmt.Errorf("failed to create stream: %v", err)
+	if _, err := ns.js.CreateOrUpdateStream(ctx, cfg); err != nil {
+		return fmt.Errorf("ensure stream %q: %w", cfg.Name, err)
 	}
-
-	fmt.Println("Stream created successfully")
 
 	return nil
 }
