@@ -17,6 +17,9 @@ func NewNastJetStreamPublisher(js jetstream.JetStream) *NastJetStreamPublisher {
 }
 
 func (ns *NastJetStreamPublisher) Publish(ctx context.Context, subject string, payload []byte) error {
+
+	println("Publish", subject)
+
 	if ns == nil || ns.js == nil {
 		return errors.New("nats publisher is nil")
 	}

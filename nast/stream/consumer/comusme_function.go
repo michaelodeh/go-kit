@@ -21,9 +21,3 @@ func (c *NastStreamConsumer) ConsumeFuncWithContext(ctx context.Context, topic s
 	}
 	return c.start(ctx, topic, handler)
 }
-
-// ConsumeFuncContext is retained as a discoverable alias for callers that
-// prefer the context-before-subject naming convention.
-func (c *NastStreamConsumer) ConsumeFuncContext(ctx context.Context, topic string, handler func(jetstream.Msg) error) (jetstream.ConsumeContext, error) {
-	return c.ConsumeFuncWithContext(ctx, topic, handler)
-}

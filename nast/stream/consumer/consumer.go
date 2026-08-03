@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -75,16 +78,36 @@ func (c *NastStreamConsumer) SetLogger(logger *slog.Logger) {
 	c.logger = logger
 }
 
-// Consume starts the consumer with a context that lives until the returned
-// subscription is stopped. Prefer ConsumeWithContext when the application has
-// a service lifecycle context.
-func (c *NastStreamConsumer) Consume(topic string, handler Consumer) (jetstream.ConsumeContext, error) {
-	if handler == nil {
-		return nil, ErrHandlerRequired
+// Consume is the simple, process-oriented API. It starts the consumer and
+// keeps the calling goroutine alive until SIGINT or SIGTERM is received. This
+// means a worker can simply call:
+//
+//	consumer.Consume("payment.created", worker)
+//
+// Applications that already own a lifecycle context should use
+// ConsumeWithContext instead.
+func (c *NastStreamConsumer) Consume(topic string, handler Consumer) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if c == nil {
+		slog.Default().Error("nats consumer is nil")
+		return
 	}
-	return c.ConsumeWithContext(context.Background(), topic, ConsumerFunc(func(_ context.Context, msg jetstream.Msg) error {
-		return handler.Consume(context.Background(), msg)
-	}))
+	if handler == nil {
+		c.reportError(nil, c.logger, ErrHandlerRequired)
+		return
+	}
+
+	subscription, err := c.start(ctx, topic, func(msg jetstream.Msg) error {
+		return handler.Consume(ctx, msg)
+	})
+	if err != nil {
+		c.reportError(nil, c.logger, err)
+		return
+	}
+	defer subscription.Drain()
+	<-ctx.Done()
 }
 
 // ConsumeWithContext starts the consumer and stops it when ctx is cancelled.
@@ -101,7 +124,6 @@ func (c *NastStreamConsumer) ConsumeWithContext(ctx context.Context, topic strin
 	return c.start(ctx, topic, func(msg jetstream.Msg) error {
 		return handler.Consume(ctx, msg)
 	})
-
 }
 
 // start creates the JetStream consumer synchronously, so configuration and
