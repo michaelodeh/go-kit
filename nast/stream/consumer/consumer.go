@@ -7,11 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -87,7 +85,7 @@ func (c *NastStreamConsumer) SetLogger(logger *slog.Logger) {
 // Applications that already own a lifecycle context should use
 // ConsumeWithContext instead.
 func (c *NastStreamConsumer) Consume(topic string, handler Consumer) {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background())
 	defer stop()
 
 	if c == nil {
