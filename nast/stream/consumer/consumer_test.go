@@ -112,6 +112,33 @@ func TestConsumeFuncNaksHandlerErrors(t *testing.T) {
 	}
 }
 
+func TestDurableConsumerKeepsExistingDeliveryPolicy(t *testing.T) {
+	js := newFakeJetStream()
+	js.existingPull = &fakePullConsumer{
+		ctx: newFakeConsumeContext(),
+		info: &jetstream.ConsumerInfo{
+			Name: "wallet-transactions",
+			Config: jetstream.ConsumerConfig{
+				DeliverPolicy: jetstream.DeliverNewPolicy,
+			},
+		},
+	}
+	consumer := NewNastStreamConsumer(js, "PAYMENTS", &jetstream.ConsumerConfig{
+		Durable:       "wallet-transactions",
+		DeliverPolicy: jetstream.DeliverAllPolicy,
+	})
+
+	cc, err := consumer.ConsumeFunc("payment.created", func(jetstream.Msg) error { return nil })
+	if err != nil {
+		t.Fatalf("ConsumeFunc: %v", err)
+	}
+	defer cc.Stop()
+
+	if js.pullCfg.DeliverPolicy != jetstream.DeliverNewPolicy {
+		t.Fatalf("DeliverPolicy = %v, want existing %v", js.pullCfg.DeliverPolicy, jetstream.DeliverNewPolicy)
+	}
+}
+
 func TestConsumeFuncUsesPushConsumerWhenQueueGroupIsConfigured(t *testing.T) {
 	js := newFakeJetStream()
 	consumer := NewNastStreamConsumer(js, "PAYMENTS", &jetstream.ConsumerConfig{
@@ -142,6 +169,8 @@ type fakeJetStream struct {
 	pull *fakePullConsumer
 	push *fakePushConsumer
 
+	existingPull *fakePullConsumer
+
 	mu      sync.Mutex
 	pullCfg jetstream.ConsumerConfig
 	pushCfg jetstream.ConsumerConfig
@@ -162,6 +191,13 @@ func (f *fakeJetStream) CreateOrUpdateConsumer(_ context.Context, _ string, cfg 
 	return f.pull, nil
 }
 
+func (f *fakeJetStream) Consumer(_ context.Context, _ string, _ string) (jetstream.Consumer, error) {
+	if f.existingPull == nil {
+		return nil, jetstream.ErrConsumerNotFound
+	}
+	return f.existingPull, nil
+}
+
 func (f *fakeJetStream) CreateOrUpdatePushConsumer(_ context.Context, _ string, cfg jetstream.ConsumerConfig) (jetstream.PushConsumer, error) {
 	f.mu.Lock()
 	f.pushCfg = cfg
@@ -180,6 +216,7 @@ type fakePullConsumer struct {
 	jetstream.Consumer
 	ctx     *fakeConsumeContext
 	handler jetstream.MessageHandler
+	info    *jetstream.ConsumerInfo
 }
 
 func (f *fakePullConsumer) Consume(handler jetstream.MessageHandler, _ ...jetstream.PullConsumeOpt) (jetstream.ConsumeContext, error) {
@@ -188,6 +225,9 @@ func (f *fakePullConsumer) Consume(handler jetstream.MessageHandler, _ ...jetstr
 }
 
 func (f *fakePullConsumer) CachedInfo() *jetstream.ConsumerInfo {
+	if f.info != nil {
+		return f.info
+	}
 	return &jetstream.ConsumerInfo{Name: "fake-pull"}
 }
 

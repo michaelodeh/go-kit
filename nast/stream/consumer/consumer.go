@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -85,7 +87,10 @@ func (c *NastStreamConsumer) SetLogger(logger *slog.Logger) {
 // Applications that already own a lifecycle context should use
 // ConsumeWithContext instead.
 func (c *NastStreamConsumer) Consume(topic string, handler Consumer) {
-	ctx, stop := signal.NotifyContext(context.Background())
+	// Calling signal.NotifyContext without a signal list subscribes to every
+	// signal. Restrict cancellation to process-termination signals so routine
+	// signals cannot cancel the context used by message handlers.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	if c == nil {
@@ -232,6 +237,30 @@ func (c *NastStreamConsumer) cleanupEphemeral(cfg jetstream.ConsumerConfig, cons
 }
 
 func (c *NastStreamConsumer) createConsumer(ctx context.Context, cfg jetstream.ConsumerConfig) (consumerHandle, error) {
+	// JetStream fixes a durable consumer's delivery policy at creation time.
+	// Retain that immutable value when starting an existing durable so callers
+	// can safely change the creation default without making the worker fail to
+	// start during a rolling deployment.
+	if cfg.Durable != "" {
+		if isPushConfig(cfg) {
+			existing, err := c.js.PushConsumer(ctx, c.streamName, cfg.Durable)
+			if err != nil && !errors.Is(err, jetstream.ErrConsumerNotFound) {
+				return nil, err
+			}
+			if err == nil && existing.CachedInfo() != nil {
+				cfg.DeliverPolicy = existing.CachedInfo().Config.DeliverPolicy
+			}
+		} else {
+			existing, err := c.js.Consumer(ctx, c.streamName, cfg.Durable)
+			if err != nil && !errors.Is(err, jetstream.ErrConsumerNotFound) {
+				return nil, err
+			}
+			if err == nil && existing.CachedInfo() != nil {
+				cfg.DeliverPolicy = existing.CachedInfo().Config.DeliverPolicy
+			}
+		}
+	}
+
 	if isPushConfig(cfg) {
 		consumer, err := c.js.CreateOrUpdatePushConsumer(ctx, c.streamName, cfg)
 		if err != nil {
